@@ -22,6 +22,7 @@ object FormClassic: TFormClassic
     Height = 51
     Align = alTop
     TabOrder = 0
+    ExplicitWidth = 994
     object RunBtn: TButton
       AlignWithMargins = True
       Left = 276
@@ -34,9 +35,6 @@ object FormClassic: TFormClassic
       ParentDoubleBuffered = False
       TabOrder = 0
       OnClick = OnRun
-      ExplicitLeft = 131
-      ExplicitTop = 1
-      ExplicitHeight = 49
     end
     object FileCombo: TComboBox
       AlignWithMargins = True
@@ -59,9 +57,6 @@ object FormClassic: TFormClassic
       Caption = 'Save'
       TabOrder = 2
       OnClick = Save
-      ExplicitLeft = 1
-      ExplicitTop = 1
-      ExplicitHeight = 49
     end
   end
   object LeftPanel: TPanel
@@ -71,8 +66,7 @@ object FormClassic: TFormClassic
     Height = 630
     Align = alLeft
     TabOrder = 1
-    ExplicitTop = 65
-    ExplicitHeight = 655
+    ExplicitHeight = 613
     object CodeBtn: TButton
       AlignWithMargins = True
       Left = 4
@@ -82,8 +76,6 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Code'
       TabOrder = 0
-      ExplicitLeft = 8
-      ExplicitTop = 459
     end
     object TranslatorBtn: TButton
       AlignWithMargins = True
@@ -94,8 +86,6 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Translator'
       TabOrder = 1
-      ExplicitLeft = 8
-      ExplicitTop = 12
     end
     object ParserBtn: TButton
       AlignWithMargins = True
@@ -106,8 +96,6 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Parser'
       TabOrder = 2
-      ExplicitLeft = 8
-      ExplicitTop = 12
     end
     object DecisionBtn: TButton
       AlignWithMargins = True
@@ -118,8 +106,6 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Decision'
       TabOrder = 3
-      ExplicitLeft = 8
-      ExplicitTop = 12
     end
     object IrregularBtn: TButton
       AlignWithMargins = True
@@ -130,8 +116,6 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Irregular'
       TabOrder = 4
-      ExplicitLeft = 8
-      ExplicitTop = 12
     end
     object NumBtn: TButton
       AlignWithMargins = True
@@ -142,8 +126,7 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Num'
       TabOrder = 5
-      ExplicitLeft = 8
-      ExplicitTop = 12
+      OnClick = NumberClicked
     end
     object IntBtn: TButton
       AlignWithMargins = True
@@ -155,8 +138,6 @@ object FormClassic: TFormClassic
       Caption = 'Int'
       TabOrder = 6
       OnClick = IntClicked
-      ExplicitLeft = 8
-      ExplicitTop = 12
     end
     object IdBtn: TButton
       AlignWithMargins = True
@@ -168,7 +149,6 @@ object FormClassic: TFormClassic
       Caption = 'Id'
       TabOrder = 7
       OnClick = IdClicked
-      ExplicitLeft = 8
     end
     object UnreadBtn: TButton
       AlignWithMargins = True
@@ -180,8 +160,6 @@ object FormClassic: TFormClassic
       Caption = 'Unread'
       TabOrder = 8
       OnClick = UnreadClicked
-      ExplicitLeft = 8
-      ExplicitTop = 12
     end
     object StrBtn: TButton
       AlignWithMargins = True
@@ -192,8 +170,6 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Str'
       TabOrder = 9
-      ExplicitLeft = 2
-      ExplicitTop = 165
     end
   end
   object ClientPanel: TPanel
@@ -203,8 +179,8 @@ object FormClassic: TFormClassic
     Height = 630
     Align = alClient
     TabOrder = 2
-    ExplicitTop = 55
-    ExplicitHeight = 665
+    ExplicitWidth = 857
+    ExplicitHeight = 613
     object OutputMemo: TMemo
       Left = 1
       Top = 315
@@ -224,6 +200,8 @@ object FormClassic: TFormClassic
       ScrollBars = ssVertical
       TabOrder = 0
       WordWrap = False
+      ExplicitWidth = 855
+      ExplicitHeight = 297
     end
     object InputMemo: TMemo
       Left = 1
@@ -244,6 +222,7 @@ object FormClassic: TFormClassic
       ScrollBars = ssVertical
       TabOrder = 1
       WordWrap = False
+      ExplicitWidth = 855
     end
   end
 end

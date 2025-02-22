@@ -1,12 +1,16 @@
-﻿{
-  واحد: SyntaxLine
-  توضیحات:
-  این واحد شامل ساختار TSyntaxLine است که برای پردازش متنی به منظور تحلیل سینتکس طراحی شده است.
-  این ساختار شامل عملیاتی مانند خواندن فایل، پیمایش در متن، بررسی پایان فایل و گزارش خطاهای سینتکس به همراه اطلاعات دقیق می‌باشد.
+﻿(*
+  Unit: SyntaxLine
+  Description:
+    This unit defines the TSyntaxLine record used for text processing and syntax analysis.
+    It includes methods for:
+      - Reading text from a file
+      - Navigating through the text
+      - Checking for end-of-file conditions
+      - Reporting syntax errors with detailed information
 
-  توسعه‌دهنده: mohhamad amin ahmadi
-  تاریخ: 2025-02-21
-}
+  Developer: mohhamad amin ahmadi
+  Date: 2025-02-21
+*)
 
 unit SyntaxLine;
 
@@ -16,58 +20,109 @@ uses
   Dialogs, SysUtils, IOUtils, Character, Types, Generics.Collections;
 
 type
+  /// <summary>
+  /// TSyntaxLine manages a source text for syntax analysis. It supports methods for loading,
+  /// scanning, error reporting, and skipping various tokens such as identifiers, integers, and numbers.
+  /// </summary>
   TSyntaxLine = record
   private const
-    END_OF_FILE_CHAR = #1; // نشانگر انتهای فایل
+    END_OF_FILE_CHAR = #1; // Marker indicating the end of the file
   private
-    FSourceText: string; // متن اصلی مورد پردازش
-    FCurrentPos: Integer; // موقعیت فعلی در متن
-    FNewPosition: Integer; // موقعیت ثانویه (برای استفاده‌های آینده)
-    FLineColumn: TPoint; // موقعیت فعلی به صورت (خط، ستون)؛ X: خط، Y: ستون
+    FSourceText: string;  // The main source text to be processed
+    FCurrentPos: Integer; // The current position in the source text
+    FNewPosition: Integer; // A secondary position used to mark the end of recognized tokens
+    FLineColumn: TPoint;  // Represents the current line (X) and column (Y)
   public
     /// <summary>
-    /// تمام فیلدهای داخلی را به حالت اولیه بازنشانی می‌کند.
+    /// Resets all internal fields to their initial states.
     /// </summary>
     procedure Reset;
 
     /// <summary>
-    /// متن ورودی را تنظیم کرده و نشانگر انتهای فایل را به آن اضافه می‌کند.
+    /// Sets the input text and appends the end-of-file marker.
     /// </summary>
     procedure SetSourceText(const AText: string);
 
     /// <summary>
-    /// متن منبع را از فایل مشخص شده بارگذاری می‌کند و نشانگر انتهای فایل را به آن اضافه می‌کند.
+    /// Loads the source text from the specified file and appends the end-of-file marker.
     /// </summary>
     procedure LoadFromFile(const AFileName: string);
 
     /// <summary>
-    /// موقعیت فعلی را به APos تغییر می‌دهد، اطلاعات خط و ستون را به‌روزرسانی کرده و متنی شامل کاراکترهای طی شده برمی‌گرداند.
+    /// Moves the current position to APos, updates line and column info,
+    /// and returns the substring of all characters traversed.
     /// </summary>
     function MoveToPosition(APos: Integer): string;
 
     /// <summary>
-    /// در صورت رسیدن به پایان متن یا مشاهده نشانگر انتهای فایل، مقدار True برمی‌گرداند.
+    /// Returns True if the current position is at or beyond the end of the text
+    /// or if the end-of-file marker is encountered.
     /// </summary>
     function IsEndOfFile: Boolean;
 
     /// <summary>
-    /// خط جاری متن را با توجه به وجود کاراکترهای newline استخراج و برمی‌گرداند.
+    /// Extracts and returns the current line of the text based on newline characters.
     /// </summary>
     function GetCurrentLine: string;
 
     /// <summary>
-    /// در صورت بروز خطای سینتکس، پیام خطا به همراه اطلاعات خط، کاراکتر و موقعیت فعلی نمایش داده و اجرای برنامه متوقف می‌شود.
+    /// Displays a syntax error message with details about the line, character,
+    /// and current position, then aborts execution.
     /// </summary>
     procedure ReportSyntaxError(const Msg: string);
 
+    /// <summary>
+    /// Checks if the remaining text consists only of whitespace or comments.
+    /// Returns True if so; otherwise False.
+    /// </summary>
     function IsUnread: Boolean;
+
+    /// <summary>
+    /// Skips over any unread text (whitespace/comments) and returns it.
+    /// </summary>
     function SkipUnread: string;
 
+    /// <summary>
+    /// Checks if the next sequence of characters forms a valid identifier.
+    /// An identifier must start with a letter and may continue with letters or digits.
+    /// </summary>
     function IsId: Boolean;
+
+    /// <summary>
+    /// If the next sequence is a valid identifier, skips it and returns the identifier.
+    /// Otherwise, reports a syntax error.
+    /// </summary>
     function SkipId: string;
 
+    /// <summary>
+    /// Checks if the next sequence of characters forms a valid integer.
+    /// Integers may have an optional sign ('-' or '+') followed by one or more digits.
+    /// </summary>
     function IsInt: Boolean;
+
+    /// <summary>
+    /// If the next sequence is a valid integer, skips it and returns its integer value.
+    /// Otherwise, reports a syntax error.
+    /// </summary>
     function SkipInt: Integer;
+
+    /// <summary>
+    /// Checks if the next sequence of characters forms a valid number.
+    /// This includes numbers with optional signs, decimal points, and exponents.
+    /// </summary>
+    function IsNumber: Boolean;
+
+    /// <summary>
+    /// If the next sequence is a valid number, skips it and returns the number as a string.
+    /// Otherwise, reports a syntax error.
+    /// </summary>
+    function SkipNumber: string;
+
+
+
+    function IsStr: Boolean;
+    function SkipStrQuot: string;
+    function SkipStr: string;
   end;
 
 implementation
@@ -76,20 +131,39 @@ implementation
 
 function TSyntaxLine.SkipId: string;
 begin
+  // Skip an identifier token if valid; otherwise, report error.
   if IsId then
     Result := MoveToPosition(FNewPosition)
   else
-    ReportSyntaxError('شناسه نامعتبر.')
+    ReportSyntaxError('Invalid identifier.');
 end;
-
-
 
 function TSyntaxLine.SkipInt: Integer;
 begin
-   if IsInt then
+  // Skip an integer token if valid; otherwise, report error.
+  if IsInt then
     Result := MoveToPosition(FNewPosition).ToInteger
   else
-    ReportSyntaxError('شناسه نامعتبر.')
+    ReportSyntaxError('Invalid integer.');
+end;
+
+function TSyntaxLine.SkipNumber: string;
+begin
+  // Skip a number token if valid; otherwise, report error.
+  if IsNumber then
+    Result := MoveToPosition(FNewPosition)
+  else
+    ReportSyntaxError('Invalid number.');
+end;
+
+function TSyntaxLine.SkipStr: string;
+begin
+
+end;
+
+function TSyntaxLine.SkipStrQuot: string;
+begin
+
 end;
 
 function TSyntaxLine.IsId: Boolean;
@@ -97,29 +171,30 @@ var
   p, state: Integer;
   text: Char;
 begin
+  // First, skip any unread parts (whitespace/comments)
   SkipUnread;
-  state := 0; // مقدار اولیه وضعیت
+  state := 0; // Initial state
+  // Loop through characters starting at FCurrentPos
   for p := FCurrentPos to High(FSourceText) do
   begin
     text := FSourceText[p];
     case state of
-
       0:
+        // The first character must be a letter
         if text.IsLetter then
           state := 1
         else
           Break;
-
       1:
+        // Subsequent characters can be letters or digits
         if text.IsLetterOrDigit then
           state := 1
         else
           Break;
     end;
   end;
-
+  // Valid identifier if we ended in state 1
   Result := state in [1];
-
   if Result then
     FNewPosition := p;
 end;
@@ -129,143 +204,216 @@ var
   p, state: Integer;
   text: Char;
 begin
+  // Skip any unread parts first
   SkipUnread;
-  state := 0; // مقدار اولیه وضعیت
+  state := 0; // Initial state
+  // Loop through the characters to match an integer pattern
   for p := FCurrentPos to High(FSourceText) do
   begin
     text := FSourceText[p];
     case state of
-
       0:
+        // A number may start with a digit or a sign
         if text.IsDigit then
           state := 2
         else if text in ['-', '+'] then
           state := 1
         else
           Break;
-
       1:
+        // After a sign, digits are required
         if text.IsDigit then
           state := 2
         else
           Break;
-
       2:
+        // Continue reading digits
         if text.IsDigit then
           state := 2
         else
           Break;
-
     end;
   end;
+  // Valid integer if state ended in 2
   Result := state in [2];
-
   if Result then
     FNewPosition := p;
 end;
 
+function TSyntaxLine.IsNumber: Boolean;
+var
+  p, state: Integer;
+  text: Char;
+begin
+  // Skip any unread parts first
+  SkipUnread;
+  state := 0; // Initial state
+  // Loop through characters to match number patterns (supports decimal and exponent parts)
+  for p := FCurrentPos to High(FSourceText) do
+  begin
+    text := FSourceText[p];
+    case state of
+      0:
+        // Start with an optional sign or digit
+        if text in ['+', '-'] then
+          state := 1
+        else if text.IsDigit then
+          state := 2
+        else
+          Break;
+      1:
+        // After a sign, a digit must follow
+        if text.IsDigit then
+          state := 2
+        else
+          Break;
+      2:
+        // Read digits; if a dot or slash (for decimals) or 'E' for exponent is encountered, move to next state
+        if text.IsDigit then
+          state := 2
+        else if text in ['.', '/'] then
+          state := 3
+        else if text = 'E' then
+          state := 5
+        else
+          Break;
+      3:
+        // After a decimal point, expect digits
+        if text.IsDigit then
+          state := 4
+        else
+          Break;
+      4:
+        // Continue reading digits after the decimal point; exponent can follow
+        if text.IsDigit then
+          state := 4
+        else if text = 'E' then
+          state := 5
+        else
+          Break;
+      5:
+        // After 'E', allow an optional sign for the exponent
+        if text in ['+', '-'] then
+          state := 6
+        else if text.IsDigit then
+          state := 7
+        else
+          Break;
+      6:
+        // After the optional exponent sign, expect digits
+        if text.IsDigit then
+          state := 7
+        else
+          Break;
+      7:
+        // Read the exponent digits
+        if text.IsDigit then
+          state := 7
+        else
+          Break;
+    end;
+  end;
+  // The number is valid if we finish in one of these states
+  Result := state in [7, 4, 2];
+  if Result then
+    FNewPosition := p;
+end;
+
+function TSyntaxLine.IsStr: Boolean;
+begin
+
+end;
+
 function TSyntaxLine.SkipUnread: string;
 begin
+  // Continuously skip over unread text (whitespace/comments)
   Result := '';
   while IsUnread do
     Result := Result + MoveToPosition(FNewPosition);
 end;
 
 {
-  تابع IsUnread بررسی می‌کند که آیا متن باقی‌مانده در `FSourceText` شامل فضای خالی یا کامنت است یا خیر.
+  IsUnread checks whether the remaining text in FSourceText
+  consists only of whitespace or comments.
 
-  نویسنده: محمد امین احمدی
-  تاریخ: ۲۰۲۵
+  Comments can be of two forms:
+    1. Single-line comment: starts with "//" and continues until a newline.
+    2. Multi-line comment: starts with "/*" and ends with "*/".
 
-  توضیحات:
-  - این تابع یک پردازش خودکار روی `FSourceText` از موقعیت فعلی `FCurrentPos` انجام می‌دهد.
-  - در صورتی که فقط فضاهای خالی یا کامنت‌ها در متن باقی مانده باشند، مقدار `True` برمی‌گرداند.
-  - کامنت‌ها می‌توانند به دو صورت باشند:
-  1. `//` تا انتهای خط
-  2. `/* ... */` که چندخطی است.
-  - اگر متن شامل کاراکتر دیگری باشد، پردازش متوقف شده و مقدار `False` برگردانده می‌شود.
+  If any non-comment and non-whitespace character is encountered,
+  the function stops and returns False.
 
-  ورودی:
-  - هیچ ورودی مستقیمی ندارد اما از `FSourceText` استفاده می‌کند.
-
-  خروجی:
-  - مقدار `Boolean` که نشان می‌دهد آیا متن خوانده‌نشده فقط شامل فضاهای خالی یا کامنت‌ها است یا خیر.
+  Output:
+    - Boolean: True if the unread portion is solely whitespace/comments; otherwise, False.
 }
 function TSyntaxLine.IsUnread: Boolean;
 var
   p, state: Integer;
   text: Char;
 begin
-  state := 0; // مقدار اولیه وضعیت
+  state := 0; // Initial state
+  // Process characters starting at the current position
   for p := FCurrentPos to High(FSourceText) do
   begin
     text := FSourceText[p];
-
     case state of
-      // وضعیت ۰: بررسی اولین کاراکتر از متن باقی‌مانده
+      // State 0: Look at the first character
       0:
         if text = '/' then
-          state := 1 // احتمال شروع یک کامنت
+          state := 1  // Potential start of a comment
         else if text.IsWhiteSpace then
-          state := 5 // فضای خالی شناسایی شد
+          state := 5  // Whitespace detected
         else
-          Break; // متن معتبری وجود دارد، پردازش متوقف شود.
-
-      // وضعیت ۱: بررسی اینکه آیا `/` دوم آمده یا `*`
+          Break;     // Found a non-whitespace, non-comment character
+      // State 1: After seeing '/', decide if it is a single-line or multi-line comment
       1:
         if text = '/' then
-          state := 6 // کامنت تک‌خطی شناسایی شد
+          state := 6  // Single-line comment confirmed
         else if text = '*' then
-          state := 2 // کامنت چندخطی شناسایی شد
+          state := 2  // Multi-line comment confirmed
         else
-          Break; // متن معمولی است، پردازش متوقف شود.
-
-      // وضعیت ۲: درون یک کامنت چندخطی قرار داریم
+          Break;     // Not a valid comment start
+      // State 2: Inside a multi-line comment
       2:
         if text = '*' then
-          state := 3; // احتمال پایان کامنت چندخطی
-      // در غیر این صورت، همچنان درون کامنت هستیم.
-
-      // وضعیت ۳: ممکن است انتهای کامنت چندخطی باشد
+          state := 3; // Possible end of multi-line comment
+        // Otherwise, remain in multi-line comment state
+      // State 3: Check if the multi-line comment is ending
       3:
         if text = '*' then
-          state := 3 // همچنان در حالت پایان کامنت
+          state := 3  // Still possible end-of-comment sequence
         else if text = '/' then
-          state := 4 // کامنت بسته شد
+          state := 4  // End of multi-line comment found
         else
-          state := 2; // بازگشت به داخل کامنت
-
-      // وضعیت ۵: در حال خواندن فضای خالی هستیم
+          state := 2; // Return to inside multi-line comment state
+      // State 5: In whitespace; continue until a non-whitespace is found
       5:
         if text.IsWhiteSpace then
-          state := 5 // همچنان فضای خالی است
+          state := 5  // Continue in whitespace
         else
-          Break; // متن معمولی پیدا شد، پردازش متوقف شود.
-
-      // وضعیت ۶: درون کامنت تک‌خطی هستیم
+          Break;     // Non-whitespace encountered
+      // State 6: Inside a single-line comment
       6:
         if text in [#10, #13] then
-          state := 7 // کامنت تک‌خطی تمام شد
+          state := 7  // End of single-line comment
         else
-          state := 6; // همچنان در کامنت تک‌خطی هستیم
-
-      // وضعیت‌های ۴ و ۷: کامنت به پایان رسیده است
+          state := 6; // Continue reading the single-line comment
+      // States 4 and 7 indicate that a comment has ended
       4, 7:
         Break;
     end;
   end;
-
-  // بررسی اینکه آیا کل متن شامل فضای خالی یا کامنت بوده است
+  // If we ended in state 4 (multi-line comment closed), 5 (whitespace), or 7 (single-line comment ended),
+  // then the unread part consists only of comments/whitespace.
   Result := state in [4, 5, 7];
-
-  // به‌روزرسانی موقعیت جدید اگر متن فقط شامل فضای خالی یا کامنت بود
+  // Update the new position marker if the result is True
   if Result then
     FNewPosition := p;
 end;
 
 procedure TSyntaxLine.Reset;
 begin
-  // بازنشانی تمامی فیلدهای داخلی به حالت اولیه
+  // Reset all internal fields to their initial values.
   FSourceText := '';
   FCurrentPos := 0;
   FNewPosition := 0;
@@ -274,7 +422,7 @@ end;
 
 procedure TSyntaxLine.SetSourceText(const AText: string);
 begin
-  // بازنشانی و تنظیم متن همراه با افزودن نشانگر انتهای فایل
+  // Reset the state and set the source text with the end-of-file marker appended.
   Reset;
   FSourceText := AText + END_OF_FILE_CHAR;
   FCurrentPos := 1;
@@ -290,18 +438,18 @@ begin
   // Reset any internal state
   Reset;
 
-  // Extract the directory and file name
+  // Determine the directory and file name from the given path
   Directory := ExtractFilePath(AFileName);
   FileToSearch := ExtractFileName(AFileName);
   if Directory = '' then
     Directory := GetCurrentDir;
 
-  // Enumerate all files in the directory
+  // Retrieve the list of files in the directory
   Files := TDirectory.GetFiles(Directory);
   FileFound := '';
+  // Loop through the files to find a matching file name (case-insensitive)
   for I := 0 to High(Files) do
   begin
-    // Compare file names ignoring case
     if SameText(ExtractFileName(Files[I]), FileToSearch) then
     begin
       FileFound := Files[I];
@@ -309,11 +457,12 @@ begin
     end;
   end;
 
-  // If a matching file was found, load it; otherwise raise an exception
+  // If a matching file was found, read its contents and append the end-of-file marker;
+  // otherwise, raise an exception.
   if FileFound <> '' then
     FSourceText := TFile.ReadAllText(FileFound) + END_OF_FILE_CHAR
   else
-    raise Exception.Create('فایل یافت نشد: ' + AFileName);
+    raise Exception.Create('File not found: ' + AFileName);
 
   FCurrentPos := 1;
   FNewPosition := 1;
@@ -323,21 +472,26 @@ function TSyntaxLine.MoveToPosition(APos: Integer): string;
 var
   TextBuilder: TStringBuilder;
 begin
+  // Collect characters from the current position up to APos,
+  // updating line and column information along the way.
   TextBuilder := TStringBuilder.Create;
   try
-    // پیمایش از موقعیت فعلی تا APos و به‌روزرسانی اطلاعات خط و ستون
     while FCurrentPos < APos do
     begin
+      // Append the current character to the result
       TextBuilder.Append(FSourceText[FCurrentPos]);
+      // If a newline is encountered, update the line and reset the column
       if FSourceText[FCurrentPos] = #10 then
       begin
-        Inc(FLineColumn.X); // افزایش شماره خط
-        FLineColumn.Y := 1; // بازنشانی شماره ستون به 1
+        Inc(FLineColumn.X); // Increase the line count
+        FLineColumn.Y := 1;  // Reset the column count to 1
       end
       else
-        Inc(FLineColumn.Y); // افزایش شماره ستون
-      Inc(FCurrentPos);
+        Inc(FLineColumn.Y); // Otherwise, increment the column count
+
+      Inc(FCurrentPos); // Move to the next character
     end;
+    // Return the collected substring
     Result := TextBuilder.ToString;
   finally
     TextBuilder.Free;
@@ -346,27 +500,26 @@ end;
 
 function TSyntaxLine.IsEndOfFile: Boolean;
 begin
-  // بررسی پایان متن یا رسیدن به نشانگر انتهای فایل
-  Result := (FCurrentPos > Length(FSourceText)) or
-    (FSourceText[FCurrentPos] = END_OF_FILE_CHAR);
+  // Check if the current position exceeds the text length or if the next character is the EOF marker.
+  Result := (FCurrentPos > Length(FSourceText))
+    or (FSourceText[FCurrentPos] = END_OF_FILE_CHAR);
 end;
 
 function TSyntaxLine.GetCurrentLine: string;
 var
   StartIndex, EndIndex: Integer;
 begin
-  // تعیین شروع خط جاری با جستجو به عقب تا یافتن کاراکتر newline
+  // Determine the start of the current line by scanning backward until a newline is found.
   StartIndex := FCurrentPos;
-  while (StartIndex > 1) and not(FSourceText[StartIndex - 1] in [#10, #12]) do
+  while (StartIndex > 1) and not (FSourceText[StartIndex - 1] in [#10, #12]) do
     Dec(StartIndex);
 
-  // تعیین پایان خط جاری با جستجو به جلو تا یافتن کاراکتر newline
+  // Determine the end of the current line by scanning forward until a newline is found.
   EndIndex := FCurrentPos;
-  while (EndIndex <= Length(FSourceText)) and
-    not(FSourceText[EndIndex] in [#10, #12]) do
+  while (EndIndex <= Length(FSourceText)) and not (FSourceText[EndIndex] in [#10, #12]) do
     Inc(EndIndex);
 
-  // استخراج و برگرداندن خط جاری از متن
+  // Return the substring that represents the current line.
   Result := Copy(FSourceText, StartIndex, EndIndex - StartIndex);
 end;
 
@@ -374,16 +527,22 @@ procedure TSyntaxLine.ReportSyntaxError(const Msg: string);
 var
   LineInfo, CharInfo, LocInfo: string;
 begin
-  // ایجاد اطلاعات خطا شامل خط جاری، کاراکتر فعلی و موقعیت (خط، ستون)
-  LineInfo := 'خط = ' + GetCurrentLine;
-  CharInfo := 'کاراکتر = ' + FSourceText[FCurrentPos];
-  LocInfo := 'موقعیت = (' + FLineColumn.X.ToString + ' , ' +
-    FLineColumn.Y.ToString + ')';
+  // Build detailed error information using the current line, character, and position.
+  LineInfo := 'Line: ' + GetCurrentLine;
+  CharInfo := 'Character: ' + FSourceText[FCurrentPos];
+  LocInfo := 'Position: (' + FLineColumn.X.ToString + ', ' + FLineColumn.Y.ToString + ')';
 
-  // نمایش پیام خطا به کاربر
-  MessageDlg(Msg + sLineBreak + sLineBreak + LineInfo + sLineBreak + CharInfo +
-    sLineBreak + LocInfo, mtError, [mbOK], 0);
+  // Display the error message along with the error details.
+  MessageDlg(
+    Msg + sLineBreak + sLineBreak +
+    LineInfo + sLineBreak +
+    CharInfo + sLineBreak +
+    LocInfo,
+    mtError, [mbOK], 0
+  );
+  // Abort the program execution after reporting the error.
   Abort;
 end;
 
 end.
+

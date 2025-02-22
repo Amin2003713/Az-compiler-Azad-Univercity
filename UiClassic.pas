@@ -34,6 +34,7 @@ type
     procedure UnreadClicked(Sender: TObject);
     procedure IdClicked(Sender: TObject);
     procedure IntClicked(Sender: TObject);
+     procedure NumberClicked(Sender: TObject);
 
   private
     { Private declarations }
@@ -69,6 +70,12 @@ procedure TFormClassic.IntClicked(Sender: TObject);
 begin
   Save(Sender);
   OutputMemo.Lines.Text := Inp.SkipInt.ToString;
+end;
+
+procedure TFormClassic.NumberClicked(Sender: TObject);
+begin
+  Save(Sender);
+  OutputMemo.Lines.Text := Inp.SkipNumber;
 end;
 
 procedure TFormClassic.OnActivation(Sender: TObject);
