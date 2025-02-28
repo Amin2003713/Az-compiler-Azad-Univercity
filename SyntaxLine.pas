@@ -1,12 +1,12 @@
 ﻿(*
   Unit: SyntaxLine
   Description:
-    This unit defines the TSyntaxLine record used for text processing and syntax analysis.
-    It includes methods for:
-      - Reading text from a file
-      - Navigating through the text
-      - Checking for end-of-file conditions
-      - Reporting syntax errors with detailed information
+  This unit defines the TSyntaxLine record used for text processing and syntax analysis.
+  It includes methods for:
+  - Reading text from a file
+  - Navigating through the text
+  - Checking for end-of-file conditions
+  - Reporting syntax errors with detailed information
 
   Developer: mohhamad amin ahmadi
   Date: 2025-02-21
@@ -24,14 +24,17 @@ type
   /// TSyntaxLine manages a source text for syntax analysis. It supports methods for loading,
   /// scanning, error reporting, and skipping various tokens such as identifiers, integers, and numbers.
   /// </summary>
+  TStrList = array of string;
+
   TSyntaxLine = record
   private const
     END_OF_FILE_CHAR = #1; // Marker indicating the end of the file
   private
-    FSourceText: string;  // The main source text to be processed
+    FSourceText: string; // The main source text to be processed
     FCurrentPos: Integer; // The current position in the source text
-    FNewPosition: Integer; // A secondary position used to mark the end of recognized tokens
-    FLineColumn: TPoint;  // Represents the current line (X) and column (Y)
+    FNewPosition: Integer;
+    // A secondary position used to mark the end of recognized tokens
+    FLineColumn: TPoint; // Represents the current line (X) and column (Y)
   public
     /// <summary>
     /// Resets all internal fields to their initial states.
@@ -116,18 +119,221 @@ type
     /// If the next sequence is a valid number, skips it and returns the number as a string.
     /// Otherwise, reports a syntax error.
     /// </summary>
-    function SkipNumber: string;
-
-
+    function SkipNumber: Double;
 
     function IsStr: Boolean;
     function SkipStrQuot: string;
-    function SkipStr: string;
+    function SkipStrValues: string;
+
+    function IsSep(sep: string): Boolean;
+    function SkipSep(sep: string): string;
+
+    function IsKey(Key: string): Boolean;
+    function SkipKey(Key: string): string;
+
+    function IsNext(Any: string): Boolean;
+    function Skip(Any: string): string;
+    function WhichIs(L: TStrList): Integer;
+    function InList(L: TStrList): Boolean;
+    function SkipSXY: string;
+    function SkipSPNV: string;
+
   end;
 
 implementation
 
 { TSyntaxLine }
+
+function TSyntaxLine.SkipSPNV: string;
+procedure SkipS; forward;
+procedure SkipP; forward;
+procedure SkipN; forward;
+procedure SkipV; forward;
+  procedure SkipS;
+  begin
+    case WhichIs(['d', 'e', 'b', 'c']) of
+      0, 1:
+        begin
+          SkipP;
+          Result := Result + Skip('a');
+          SkipN;
+        end;
+      2:
+        begin
+          SkipV;
+          SkipP;
+        end;
+      3:
+        Result := Result + Skip('c');
+    else
+      ReportSyntaxError('d, e, b, c Expected');
+    end;
+  end;
+  procedure SkipP;
+  begin
+    case WhichIs(['d', 'e']) of
+      0:
+        begin
+          Result := Result + Skip('d');
+          SkipN;
+          SkipP;
+        end;
+      1:
+        Result := Result + Skip('e');
+    else
+      ReportSyntaxError('d, e Expected');
+    end;
+  end;
+  procedure SkipN;
+  begin
+    case WhichIs(['b', 'd', 'e', END_OF_FILE_CHAR]) of
+      0:
+        begin
+          SkipV;
+          Result := Result + Skip('a');
+        end;
+      1 .. 3:
+        begin
+          { null };
+        end;
+    else
+      ReportSyntaxError('b, d, e, Eof Expected');
+    end;
+  end;
+  procedure SkipV;
+  begin
+    Result := Result + Skip('b');
+  end;
+
+begin
+  Result := '';
+  SkipS;
+end;
+
+function TSyntaxLine.SkipSXY: string;
+procedure SkipS; forward;
+procedure SkipX; forward;
+procedure SkipY; forward;
+  procedure SkipS;
+  begin
+    SkipX;
+    Result := Result + Skip('d');
+    SkipY;
+  end;
+
+  procedure SkipX;
+  begin
+    if IsNext('a') then
+    begin
+      Result := Result + Skip('a');
+      SkipX;
+    end
+    else
+    begin
+      { null };
+    end;
+  end;
+
+  procedure SkipY;
+  begin
+    if IsNext('b') then
+    begin
+      Result := Result + Skip('b');
+      SkipY;
+      SkipS;
+    end
+    else
+    begin
+      { null };
+    end;
+  end;
+
+begin
+  Result := '';
+  SkipS;
+end;
+
+function TSyntaxLine.InList(L: TStrList): Boolean;
+begin
+  Result := WhichIs(L) <> -1;
+end;
+
+function TSyntaxLine.WhichIs(L: TStrList): Integer;
+var
+  i: Integer;
+begin
+  SkipUnread;
+
+  Result := -1;
+  for i := 0 to High(L) do
+    if IsNext(L[i]) then
+      Exit(i);
+end;
+
+function TSyntaxLine.IsNext(Any: string): Boolean;
+var
+  T: string;
+begin
+  SkipUnread;
+
+  T := Any.ToUpper;
+  if T = '#ID' then
+    Result := IsId
+  else if T = '#INT' then
+    Result := IsInt
+  else if T = '#NUM' then
+    Result := IsNumber
+  else if T = '#STR' then
+    Result := IsStr
+  else if (Any.Length >= 2) and (Any[1] = '$') then
+    Result := IsKey(Copy(Any, 2))
+  else
+    Result := IsSep(Any);
+end;
+
+function TSyntaxLine.Skip(Any: string): string;
+var
+  T: string;
+begin
+  T := Any.ToUpper;
+  if T = '#ID' then
+    Result := SkipId
+  else if T = '#INT' then
+    Result := SkipInt.ToString
+  else if T = '#NUM' then
+    Result := SkipNumber.ToString
+  else if T = '#STRQUOT' then
+    Result := SkipStrQuot
+  else if T = '#STRVAL' then
+    Result := SkipStrValues
+  else if (Any.Length >= 2) and (Any[1] = '$') then
+    Result := SkipKey(Copy(Any, 2))
+  else
+    Result := SkipSep(Any);
+end;
+
+function TSyntaxLine.IsKey(Key: string): Boolean;
+begin
+  Result := IsId and (Copy(FSourceText, FCurrentPos, FNewPosition - FCurrentPos)
+    .ToUpper = Key.ToUpper);
+end;
+
+function TSyntaxLine.IsSep(sep: string): Boolean;
+begin
+  SkipUnread;
+  Result := Copy(FSourceText, FCurrentPos, sep.Length).ToUpper = sep.ToUpper;
+
+  if Result then
+    FNewPosition := FCurrentPos + sep.Length;
+end;
+
+function TSyntaxLine.SkipKey(Key: string): string;
+begin
+  if IsKey(Key) then
+    Result := MoveToPosition(FNewPosition)
+  else
+    ReportSyntaxError('"' + Key + '" Expected');
+end;
 
 function TSyntaxLine.SkipId: string;
 begin
@@ -147,23 +353,37 @@ begin
     ReportSyntaxError('Invalid integer.');
 end;
 
-function TSyntaxLine.SkipNumber: string;
+function TSyntaxLine.SkipNumber: Double;
 begin
   // Skip a number token if valid; otherwise, report error.
   if IsNumber then
-    Result := MoveToPosition(FNewPosition)
+    Result := MoveToPosition(FNewPosition).ToDouble
   else
     ReportSyntaxError('Invalid number.');
 end;
 
-function TSyntaxLine.SkipStr: string;
+function TSyntaxLine.SkipStrValues: string;
 begin
+  SkipUnread;
+  Result := '';
+  while IsStr do
+    Result := Result + MoveToPosition(FNewPosition);
+end;
 
+function TSyntaxLine.SkipSep(sep: string): string;
+begin
+  if IsSep(sep) then
+    Result := MoveToPosition(FNewPosition)
+  else
+    ReportSyntaxError('"' + sep + '" Expected');
 end;
 
 function TSyntaxLine.SkipStrQuot: string;
 begin
-
+  if IsStr then
+    Result := MoveToPosition(FNewPosition)
+  else
+    ReportSyntaxError('Invalid string');
 end;
 
 function TSyntaxLine.IsId: Boolean;
@@ -287,7 +507,7 @@ begin
         // Continue reading digits after the decimal point; exponent can follow
         if text.IsDigit then
           state := 4
-        else if text = 'E' then
+        else if text.ToUpper = 'E' then
           state := 5
         else
           Break;
@@ -320,8 +540,62 @@ begin
 end;
 
 function TSyntaxLine.IsStr: Boolean;
+var
+  p, state: Integer;
+  text: Char;
 begin
+  // Skip any unread parts first
+  SkipUnread;
+  state := 0; // Initial state
+  // Loop through characters to match number patterns (supports decimal and exponent parts)
+  for p := FCurrentPos to High(FSourceText) do
+  begin
+    text := FSourceText[p];
+    case state of
+      0:
+        if text = '''' then
+          state := 1
+        else if text = '#' then
+          state := 3
+        else
+          Break;
 
+      1:
+        if text = '''' then
+          state := 2
+        else if text in [#10, #13] then
+          Break
+        else
+          state := 1;
+      2:
+        if text = '''' then
+          state := 1
+        else if text = '#' then
+          state := 3
+        else
+          Break;
+
+      3:
+        if text.IsDigit then
+          state := 4
+        else
+          Break;
+
+      4:
+        if text = '''' then
+          state := 1
+        else if text = '#' then
+          state := 3
+        else if text.IsDigit then
+          state := 4
+        else
+          Break;
+    end;
+  end;
+
+  Result := state in [4, 2];
+  if Result then
+    FNewPosition := p;
 end;
 
 function TSyntaxLine.SkipUnread: string;
@@ -337,14 +611,14 @@ end;
   consists only of whitespace or comments.
 
   Comments can be of two forms:
-    1. Single-line comment: starts with "//" and continues until a newline.
-    2. Multi-line comment: starts with "/*" and ends with "*/".
+  1. Single-line comment: starts with "//" and continues until a newline.
+  2. Multi-line comment: starts with "/*" and ends with "*/".
 
   If any non-comment and non-whitespace character is encountered,
   the function stops and returns False.
 
   Output:
-    - Boolean: True if the unread portion is solely whitespace/comments; otherwise, False.
+  - Boolean: True if the unread portion is solely whitespace/comments; otherwise, False.
 }
 function TSyntaxLine.IsUnread: Boolean;
 var
@@ -360,42 +634,42 @@ begin
       // State 0: Look at the first character
       0:
         if text = '/' then
-          state := 1  // Potential start of a comment
+          state := 1 // Potential start of a comment
         else if text.IsWhiteSpace then
-          state := 5  // Whitespace detected
+          state := 5 // Whitespace detected
         else
-          Break;     // Found a non-whitespace, non-comment character
+          Break; // Found a non-whitespace, non-comment character
       // State 1: After seeing '/', decide if it is a single-line or multi-line comment
       1:
         if text = '/' then
-          state := 6  // Single-line comment confirmed
+          state := 6 // Single-line comment confirmed
         else if text = '*' then
-          state := 2  // Multi-line comment confirmed
+          state := 2 // Multi-line comment confirmed
         else
-          Break;     // Not a valid comment start
+          Break; // Not a valid comment start
       // State 2: Inside a multi-line comment
       2:
         if text = '*' then
           state := 3; // Possible end of multi-line comment
-        // Otherwise, remain in multi-line comment state
+      // Otherwise, remain in multi-line comment state
       // State 3: Check if the multi-line comment is ending
       3:
         if text = '*' then
-          state := 3  // Still possible end-of-comment sequence
+          state := 3 // Still possible end-of-comment sequence
         else if text = '/' then
-          state := 4  // End of multi-line comment found
+          state := 4 // End of multi-line comment found
         else
           state := 2; // Return to inside multi-line comment state
       // State 5: In whitespace; continue until a non-whitespace is found
       5:
         if text.IsWhiteSpace then
-          state := 5  // Continue in whitespace
+          state := 5 // Continue in whitespace
         else
-          Break;     // Non-whitespace encountered
+          Break; // Non-whitespace encountered
       // State 6: Inside a single-line comment
       6:
         if text in [#10, #13] then
-          state := 7  // End of single-line comment
+          state := 7 // End of single-line comment
         else
           state := 6; // Continue reading the single-line comment
       // States 4 and 7 indicate that a comment has ended
@@ -433,7 +707,7 @@ procedure TSyntaxLine.LoadFromFile(const AFileName: string);
 var
   Directory, FileToSearch, FileFound: string;
   Files: TStringDynArray;
-  I: Integer;
+  i: Integer;
 begin
   // Reset any internal state
   Reset;
@@ -448,11 +722,11 @@ begin
   Files := TDirectory.GetFiles(Directory);
   FileFound := '';
   // Loop through the files to find a matching file name (case-insensitive)
-  for I := 0 to High(Files) do
+  for i := 0 to High(Files) do
   begin
-    if SameText(ExtractFileName(Files[I]), FileToSearch) then
+    if SameText(ExtractFileName(Files[i]), FileToSearch) then
     begin
-      FileFound := Files[I];
+      FileFound := Files[i];
       Break;
     end;
   end;
@@ -484,7 +758,7 @@ begin
       if FSourceText[FCurrentPos] = #10 then
       begin
         Inc(FLineColumn.X); // Increase the line count
-        FLineColumn.Y := 1;  // Reset the column count to 1
+        FLineColumn.Y := 1; // Reset the column count to 1
       end
       else
         Inc(FLineColumn.Y); // Otherwise, increment the column count
@@ -501,8 +775,8 @@ end;
 function TSyntaxLine.IsEndOfFile: Boolean;
 begin
   // Check if the current position exceeds the text length or if the next character is the EOF marker.
-  Result := (FCurrentPos > Length(FSourceText))
-    or (FSourceText[FCurrentPos] = END_OF_FILE_CHAR);
+  Result := (FCurrentPos > Length(FSourceText)) or
+    (FSourceText[FCurrentPos] = END_OF_FILE_CHAR);
 end;
 
 function TSyntaxLine.GetCurrentLine: string;
@@ -511,12 +785,13 @@ var
 begin
   // Determine the start of the current line by scanning backward until a newline is found.
   StartIndex := FCurrentPos;
-  while (StartIndex > 1) and not (FSourceText[StartIndex - 1] in [#10, #12]) do
+  while (StartIndex > 1) and not(FSourceText[StartIndex - 1] in [#10, #12]) do
     Dec(StartIndex);
 
   // Determine the end of the current line by scanning forward until a newline is found.
   EndIndex := FCurrentPos;
-  while (EndIndex <= Length(FSourceText)) and not (FSourceText[EndIndex] in [#10, #12]) do
+  while (EndIndex <= Length(FSourceText)) and
+    not(FSourceText[EndIndex] in [#10, #12]) do
     Inc(EndIndex);
 
   // Return the substring that represents the current line.
@@ -530,23 +805,14 @@ begin
   // Build detailed error information using the current line, character, and position.
   LineInfo := 'Line: ' + GetCurrentLine;
   CharInfo := 'Character: ' + FSourceText[FCurrentPos];
-  LocInfo := 'Position: (' + FLineColumn.X.ToString + ', ' + FLineColumn.Y.ToString + ')';
+  LocInfo := 'Position: (' + FLineColumn.X.ToString + ', ' +
+    FLineColumn.Y.ToString + ')';
 
   // Display the error message along with the error details.
-  MessageDlg(
-    Msg + sLineBreak + sLineBreak +
-    LineInfo + sLineBreak +
-    CharInfo + sLineBreak +
-    LocInfo,
-    mtError, [mbOK], 0
-  );
+  MessageDlg(Msg + sLineBreak + sLineBreak + LineInfo + sLineBreak + CharInfo +
+    sLineBreak + LocInfo, mtError, [mbOK], 0);
   // Abort the program execution after reporting the error.
   Abort;
 end;
 
 end.
-
-                     
-                     
-                     
-                     

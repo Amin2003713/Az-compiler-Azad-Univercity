@@ -22,7 +22,6 @@ object FormClassic: TFormClassic
     Height = 51
     Align = alTop
     TabOrder = 0
-    ExplicitWidth = 994
     object RunBtn: TButton
       AlignWithMargins = True
       Left = 276
@@ -66,7 +65,6 @@ object FormClassic: TFormClassic
     Height = 630
     Align = alLeft
     TabOrder = 1
-    ExplicitHeight = 613
     object CodeBtn: TButton
       AlignWithMargins = True
       Left = 4
@@ -96,6 +94,7 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Parser'
       TabOrder = 2
+      OnClick = ParserClicked
     end
     object DecisionBtn: TButton
       AlignWithMargins = True
@@ -106,6 +105,7 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Decision'
       TabOrder = 3
+      OnClick = DecisionClicked
     end
     object IrregularBtn: TButton
       AlignWithMargins = True
@@ -116,6 +116,7 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Irregular'
       TabOrder = 4
+      OnClick = IrregularClicked
     end
     object NumBtn: TButton
       AlignWithMargins = True
@@ -170,6 +171,7 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Str'
       TabOrder = 9
+      OnClick = StrClicked
     end
   end
   object ClientPanel: TPanel
@@ -179,8 +181,6 @@ object FormClassic: TFormClassic
     Height = 630
     Align = alClient
     TabOrder = 2
-    ExplicitWidth = 857
-    ExplicitHeight = 613
     object OutputMemo: TMemo
       Left = 1
       Top = 315
@@ -200,8 +200,6 @@ object FormClassic: TFormClassic
       ScrollBars = ssVertical
       TabOrder = 0
       WordWrap = False
-      ExplicitWidth = 855
-      ExplicitHeight = 297
     end
     object InputMemo: TMemo
       Left = 1
@@ -222,7 +220,6 @@ object FormClassic: TFormClassic
       ScrollBars = ssVertical
       TabOrder = 1
       WordWrap = False
-      ExplicitWidth = 855
     end
   end
 end
