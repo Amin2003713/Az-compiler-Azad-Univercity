@@ -1,1 +1,1 @@
-for I := 12 TO 155 DO
+for := 12 TO 155 DO

@@ -1,4 +1,4 @@
-if a = b then
+ifa = b then
 while c = d do
 for i:= low to high do 
 e:= f + h

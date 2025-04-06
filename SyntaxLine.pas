@@ -17,7 +17,7 @@ unit SyntaxLine;
 interface
 
 uses
-  Dialogs, SysUtils, IOUtils, Character, Types, Generics.Collections;
+  Dialogs, SysUtils, IOUtils, Character, Types, Generics.Collections , Math;
 
 type
   /// <summary>
@@ -26,6 +26,30 @@ type
   /// </summary>
   TStrList = array of string;
 
+   TStackRec<T> = record
+   Stk: TStack<T>; // شی‌ء پشته داخلی
+
+  class operator Initialize(out Dest: TStackRec<T>);
+  class operator Finalize(var Dest: TStackRec<T>);
+  
+  procedure Push(const Value: T); inline;
+
+  function Pop: T; inline;
+  function Peek: T; inline;
+
+end;
+
+       TCode = record
+    Op, Addr1, Addr2, Target: string;
+  end;
+
+  TCodeList = array of TCode;
+  
+    HCodeList = record helper for TCodeList
+    function Add(Op, Addr1, Addr2, Target: string): Integer;
+    function ToLines: TStrList;
+    end;
+  
   TSyntaxLine = record
   private const
     END_OF_FILE_CHAR = #1; // Marker indicating the end of the file
@@ -138,11 +162,374 @@ type
     function SkipSXY: string;
     function SkipSPNV: string;
 
+    function SkipDepth: Integer;
+
+     function SkipExpVal: Double;
+
+
+
+    private type
+  TSemanticAction = (
+    saId, saNum, saStr,
+    saAdd, saSub, saMul, saDiv,
+    saOr, saAnd,
+    saLess, saEqual, saGreat,
+    saLessEq, saNotEq, saGreatEq,
+    saNeg, saNot , saCopy , saThen , saElse,saTarget, saLabel , saDoWhile,saEndWhile ,saToFor , saDoFor , saEndFor
+  );
+
+  private
+    SS: TStackRec<string>;
+    Codes: TCodeList;
+    TempNo: Integer;
+
+    function NewTemp: string;
+    procedure DoAction(Act: TSemanticAction; TokenVal: string = '');
+  public
+    procedure SkipExp;
+    function SkipCodes: TCodeList;
+
+    procedure SkipStatement;
+procedure SkipAssign;
+procedure SkipIf;
+procedure SkipFor;
+procedure SkipWhile;
+
   end;
+
 
 implementation
 
 { TSyntaxLine }
+
+
+procedure TSyntaxLine.SkipWhile;
+begin
+  SkipKey('while');
+  DoAction(saLabel);
+  SkipExp;
+  SkipKey('do');
+  DoAction(saDoWhile);
+  SkipStatement;
+  DoAction(saEndWhile);
+end;
+
+
+procedure TSyntaxLine.SkipFor;
+begin
+  SkipKey('for');
+  DoAction(saId, SkipId);
+  SkipSep(':=');
+  SkipExp;
+  SkipKey('to');
+  DoAction(saToFor);
+  SkipExp;
+  SkipSep('do');
+  DoAction(saDoFor);
+  SkipStatement;
+  DoAction(saEndFor);
+end;
+
+
+procedure TSyntaxLine.SkipStatement;
+begin
+  case WhichIs(['$if', '$while', '$for', '#id']) of
+    0: SkipIf;
+    1: SkipWhile;
+    2: SkipFor;
+    3: SkipAssign;
+  else
+    ReportSyntaxError('Statement expected: if , while, for, id');
+  end;
+end;
+
+
+
+ procedure TSyntaxLine.SkipAssign;
+begin
+  DoAction(saId, SkipId);         // شناسه چپ را به عنوان یک id ذخیره می‌کنیم
+  SkipSep(':=');                  // بررسی و عبور از :=
+  SkipExp;                        // تحلیل سمت راست انتساب (یک عبارت کامل)
+  DoAction(saCopy, ':=');         // تولید دستور معنایی برای انتساب
+end;
+
+
+
+function TSyntaxLine.NewTemp: string;
+begin
+  Inc(TempNo);
+  Result := 't' + IntToStr(TempNo);
+end;
+
+ procedure TSyntaxLine.DoAction(Act: TSemanticAction; TokenVal: string);
+var
+  L, R, Temp: string;
+  P1, P2 , L1 :Integer;
+begin
+  case Act of
+    saId, saNum, saStr:
+      SS.Push(TokenVal);
+
+    saAdd..saGreatEq:
+      begin
+        R := SS.Pop;
+        L := SS.Pop;
+        Temp := NewTemp;
+        Codes.Add(TokenVal, L, R, Temp);
+        SS.Push(Temp);
+      end;
+
+    saNeg, saNot:
+      begin
+        Temp := NewTemp;
+        Codes.Add(TokenVal, SS.Pop, '', Temp);
+        SS.Push(Temp);
+      end;
+        saCopy:
+      begin
+        R := SS.Pop;
+        L := SS.Pop;
+        Codes.Add(':=', R, '', L);
+      end;
+
+    saThen:
+      begin
+        P1 := Codes.Add('jf', SS.Pop, '', '');  // jump if false
+        SS.Push(P1.ToString);                  // ذخیره موقعیت پرش در پشته
+      end;
+
+    saTarget:
+      begin
+
+        Codes[SS.Pop.ToInteger].Target := Length(Codes).ToString;  // تنظیم مقصد پرش به کد فعلی
+      end;
+
+    saElse:
+      begin
+        P1 := SS.Pop.ToInteger;
+        P2 := Codes.Add('j', '', '', '');
+        SS.Push(P2.ToString);                         // پرش از بخش true به بعد از else
+        Codes[P1].Target := Length(Codes).ToString;
+      end;
+
+     saLabel:
+  SS.Push(Length(Codes).ToString);
+
+saDoWhile:
+begin
+  P1 := Codes.Add('JF', SS.Pop, '', '');
+  SS.Push(P1.ToString);
+end;
+
+saEndWhile:
+begin
+  P1 := SS.Pop.ToInteger;
+  L1 := SS.Pop.ToInteger;
+  Codes.Add('J', '', '', L1.ToString);
+  Codes[P1].Target := Length(Codes).ToString;
+end;
+
+saToFor:
+begin
+  R := SS.Pop;
+  L := SS.Peek;
+  Codes.Add(':=', R, '', L);
+end;
+
+saDoFor:
+begin
+  R := SS.Pop;
+  L := SS.Peek;
+  Temp := NewTemp;
+  L1 := Codes.Add('<=', L, R, Temp);
+  P1 := Codes.Add('JF', Temp, '', '');
+  SS.Push(L1.ToString);
+  SS.Push(P1.ToString);
+end;
+
+saEndFor:
+begin
+  P1 := SS.Pop.ToInteger;
+  L1 := SS.Pop.ToInteger;
+  R := SS.Pop;
+  Codes.Add('Inc', R, '', '');
+  Codes.Add('J', '', '', L1.ToString);
+  Codes[P1].Target := Length(Codes).ToString;
+end;
+
+
+  end;
+end;
+
+
+   procedure TSyntaxLine.SkipExp;
+
+procedure SkipC; forward;
+procedure SkipC1; forward;
+procedure SkipA; forward;
+procedure SkipA1; forward;
+procedure SkipM; forward;
+procedure SkipM1; forward;
+procedure SkipP; forward;
+
+
+     procedure SkipA1;
+begin
+  case WhichIs(['+', '-', 'or']) of
+    0:
+      begin
+        SkipSep('+');
+        SkipM;
+        DoAction(saAdd, '+');
+        SkipA1;
+      end;
+    1:
+      begin
+        SkipSep('-');
+        SkipM;
+        DoAction(saSub, '-');
+        SkipA1;
+      end;
+    2:
+      begin
+        SkipKey('or');
+        SkipM;
+        DoAction(saOr, 'or');
+        SkipA1;
+      end;
+  else
+    ; { null }
+  end;
+end;
+
+
+procedure SkipM1;
+begin
+  case WhichIs(['*', '/', 'and']) of
+    0:
+      begin
+        SkipSep('*');
+        SkipP;
+        DoAction(saMul, '*');
+        SkipM1;
+      end;
+    1:
+      begin
+        SkipSep('/');
+        SkipP;
+        DoAction(saDiv, '/');
+        SkipM1;
+      end;
+    2:
+      begin
+        SkipKey('and');
+        SkipP;
+        DoAction(saAnd, 'and');
+        SkipM1;
+      end;
+  else
+    ; { null }
+  end;
+end;
+
+
+   procedure SkipC;
+begin
+  SkipA;
+  SkipC1;
+end;
+
+   procedure SkipA;
+begin
+  SkipM;
+  SkipA1;
+end;
+
+   procedure SkipM;
+begin
+  SkipP;
+  SkipM1;
+end;
+
+procedure SkipP;
+begin
+  case WhichIs(['-', 'not', '(', '#id', '#num', '#str']) of
+    0: begin
+         SkipSep('-');
+         SkipP;
+         DoAction(saNeg, 'neg');
+       end;
+    1: begin
+         SkipKey('not');
+         SkipP;
+         DoAction(saNot, 'not');
+       end;
+    2: begin
+         SkipSep('(');
+         SkipC;
+         SkipSep(')');
+       end;
+    3:
+       DoAction(saId, SkipId);
+    4:
+       DoAction(saNum, SkipNumber.ToString);
+    5:
+       DoAction(saStr, SkipStrQuot);
+  else
+    ReportSyntaxError('"-", not, (, id, num, str expected"');
+  end;
+end;
+
+
+  procedure SkipC1;
+begin
+  case WhichIs(['<=', '<>', '>=', '<', '=', '>']) of
+    0:
+      begin
+        SkipSep('<=');  // مقایسه کمتر مساوی
+        SkipA;
+        DoAction(saLessEq, '<=');
+      end;
+    1:
+      begin
+        SkipSep('<>');
+        SkipA;
+        DoAction(saNotEq, '<>');
+      end;
+    2:
+      begin
+        SkipSep('>=');
+        SkipA;
+        DoAction(saGreatEq, '>=');
+      end;
+    3:
+      begin
+        SkipSep('<');
+        SkipA;
+        DoAction(saLess, '<');
+      end;
+    4:
+      begin
+        SkipSep('=');
+        SkipA;
+        DoAction(saEqual, '=');
+      end;
+    5:
+      begin
+        SkipSep('>');
+        SkipA;
+        DoAction(saGreat, '>');
+      end;
+  else
+    ; // null – در صورتی که هیچ‌کدام از این مقایسه‌ها نباشد
+  end;
+end;
+
+
+
+begin;
+SkipC;
+ end;
 
 function TSyntaxLine.SkipSPNV: string;
 procedure SkipS; forward;
@@ -311,6 +698,237 @@ begin
   else
     Result := SkipSep(Any);
 end;
+
+
+
+function TSyntaxLine.SkipCodes: TCodeList;
+begin
+  Codes := nil;
+  TempNo := 0;
+  //SkipExp;
+  SkipStatement();
+  Result := Codes;
+end;
+
+procedure TSyntaxLine.SkipIf;
+
+  procedure SkipIf1;
+  begin
+    if IsKey('else') then
+    begin
+      SkipKey('else');
+      DoAction(saElse);
+      SkipStatement;
+      DoAction(saTarget);
+    end
+    else  {null}
+      DoAction(saTarget);  // در صورت نبودن else، یک نقطه پرش (target) هم‌چنان ثبت می‌شود
+  end;
+
+begin
+  SkipKey('if');
+  SkipExp;
+  SkipKey('then');
+  DoAction(saThen);         // ثبت نقطه پرش مشروط
+  SkipStatement;
+  SkipIf1;
+end;
+
+
+function TSyntaxLine.SkipDepth: Integer;
+procedure SkipS; forward;
+procedure SkipL; forward;
+procedure SkipL1; forward;
+
+type
+  TSemanticStack = TStackRec<Integer>;
+  TSemanticAction = (saZero, saInc, saMax);
+
+var
+  SS: TSemanticStack;
+
+procedure DoAction(Act: TSemanticAction);
+begin
+  case Act of
+    saZero:
+      SS.Push(0);                         // یک ۰ به پشته اضافه می‌شود
+    saInc:
+      SS.Push(SS.Pop + 1);                // مقدار بالای پشته +1 شده و دوباره پوش می‌شود
+    saMax:
+      SS.Push(Max(SS.Pop, SS.Pop));       // دو مقدار بالای پشته برداشته شده و بیشینه آن‌ها پوش می‌شود
+  end;
+end;
+
+procedure SkipS;
+begin
+  case WhichIs(['(', 'a']) of
+    0: begin
+         Skip('(');
+         SkipL;
+         Skip(')');
+         DoAction(saInc) ;
+       end;
+    1:begin
+    Skip('a');
+      DoAction(saZero) ;
+    end
+
+  else
+    ReportSyntaxError('"(", "a" expected');
+  end;
+end;
+
+procedure SkipL;
+begin
+  SkipS;
+  SkipL1;
+end;
+
+procedure SkipL1;
+begin
+  if IsNext(',') then
+  begin
+    Skip(',');
+    SkipS;
+      DoAction(saMax) ;
+    SkipL1;
+  end
+  else
+    ; // null
+end;
+
+// بلاک اصلی که به عنوان entry point برای پارس است:
+begin
+SkipS;
+  Result := ss.Pop;
+end;
+
+
+function TSyntaxLine.SkipExpVal: Double;
+procedure SkipA; forward;
+procedure SkipA1; forward;
+procedure SkipM; forward;
+procedure SkipM1; forward;
+procedure SkipP; forward;
+
+type
+  TSemanticStack = TStackRec<Double>;
+  TSemanticAction = (saAdd, saSub, saMul, saDiv, saNeg, saNum);
+
+var
+  SS: TSemanticStack;
+
+procedure DoAction(Act: TSemanticAction; TokenVal: Double = 0);
+var
+  L, R: Double;
+begin
+  case Act of
+    saAdd:
+      SS.Push(SS.Pop + SS.Pop);
+
+    saSub:
+      begin
+        R := SS.Pop;
+        L := SS.Pop;
+        SS.Push(L - R);
+      end;
+
+    saMul:
+      SS.Push(SS.Pop * SS.Pop);
+
+    saDiv:
+      begin
+        R := SS.Pop;
+        L := SS.Pop;
+        SS.Push(L / R);
+      end;
+
+    saNeg:
+      SS.Push(-SS.Pop);
+
+    saNum:
+      SS.Push(TokenVal);
+  end;
+end;
+
+procedure SkipA;
+begin
+  SkipM;
+  SkipA1;
+end;
+
+procedure SkipA1;
+begin
+  if IsSep('+') then
+  begin
+    Skip('+');
+    SkipM;
+    DoAction(saAdd);
+    SkipA1;
+  end
+  else if IsSep('-') then
+  begin
+    Skip('-');
+    SkipM;
+    DoAction(saSub);
+    SkipA1;
+  end
+  else
+    ; { null }
+end;
+
+  procedure SkipM;
+begin
+  SkipP;
+  SkipM1;
+end;
+
+procedure SkipM1;
+begin
+  if IsSep('*') then
+  begin
+    Skip('*');
+    SkipP;
+    DoAction(saMul);
+    SkipM1;
+  end
+  else if IsSep('/') then
+  begin
+    Skip('/');
+    SkipP;
+    DoAction(saDiv);
+    SkipM1;
+  end
+  else
+    ; { null }
+end;
+     procedure SkipP;
+begin
+  case WhichIs(['-', '(', '#num']) of
+    0:
+      begin
+        Skip('-');
+        SkipP;
+        DoAction(saNeg);
+      end;
+    1:
+      begin
+        Skip('(');
+        SkipA;
+        Skip(')');
+      end;
+    2:
+     DoAction(saNum , SkipNumber);
+  else
+    ReportSyntaxError('"-", "(", num expected');
+  end;
+end;
+
+begin
+  SkipA;
+  Result := ss.Pop;
+end;
+
 
 function TSyntaxLine.IsKey(Key: string): Boolean;
 begin
@@ -772,12 +1390,14 @@ begin
   end;
 end;
 
+
 function TSyntaxLine.IsEndOfFile: Boolean;
 begin
   // Check if the current position exceeds the text length or if the next character is the EOF marker.
   Result := (FCurrentPos > Length(FSourceText)) or
     (FSourceText[FCurrentPos] = END_OF_FILE_CHAR);
 end;
+
 
 function TSyntaxLine.GetCurrentLine: string;
 var
@@ -814,5 +1434,63 @@ begin
   // Abort the program execution after reporting the error.
   Abort;
 end;
+
+{ TStackRec<T> }
+
+class operator TStackRec<T>.Initialize(out Dest: TStackRec<T>);
+begin
+  Dest.Stk := TStack<T>.Create;
+end;
+
+class operator TStackRec<T>.Finalize(var Dest: TStackRec<T>);
+begin
+  Dest.Stk.Free;
+end;
+
+procedure TStackRec<T>.Push(const Value: T);
+begin
+  Stk.Push(Value);
+end;
+
+function TStackRec<T>.Pop: T;
+begin
+  Result := Stk.Pop;
+end;
+
+function TStackRec<T>.Peek: T;
+begin
+  Result := Stk.Peek;
+end;
+
+function HCodeList.Add(Op, Addr1, Addr2, Target: string): Integer;
+var
+  ACode: TCode;
+begin
+  ACode.Op := Op;
+  ACode.Addr1 := Addr1;
+  ACode.Addr2 := Addr2;
+  ACode.Target := Target;
+  Self := Self + [ACode]; // اضافه‌کردن رکورد به لیست
+  Result := High(Self);   // اندیس آخرین عنصر جدید
+end;
+
+function HCodeList.ToLines: TStrList;
+var
+  i: Integer;
+  S: string;
+begin
+
+  for i := 0 to High(Self) do
+  begin
+    S := string.Join(', ', [Self[i].Op, Self[i].Addr1, Self[i].Addr2, Self[i].Target]);
+    Result := Result + [' ['+FormatFloat('000' , i ) + '] '+ '(' + s + ')'];
+  end;
+end;
+
+
+
+
+
+
 
 end.

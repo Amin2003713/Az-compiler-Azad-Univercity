@@ -22,6 +22,7 @@ object FormClassic: TFormClassic
     Height = 51
     Align = alTop
     TabOrder = 0
+    ExplicitWidth = 994
     object RunBtn: TButton
       AlignWithMargins = True
       Left = 276
@@ -65,6 +66,7 @@ object FormClassic: TFormClassic
     Height = 630
     Align = alLeft
     TabOrder = 1
+    ExplicitHeight = 613
     object CodeBtn: TButton
       AlignWithMargins = True
       Left = 4
@@ -74,6 +76,7 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Code'
       TabOrder = 0
+      OnClick = CodeClicked
     end
     object TranslatorBtn: TButton
       AlignWithMargins = True
@@ -84,6 +87,7 @@ object FormClassic: TFormClassic
       Align = alTop
       Caption = 'Translator'
       TabOrder = 1
+      OnClick = DepthClicked
     end
     object ParserBtn: TButton
       AlignWithMargins = True
@@ -181,11 +185,13 @@ object FormClassic: TFormClassic
     Height = 630
     Align = alClient
     TabOrder = 2
+    ExplicitWidth = 857
+    ExplicitHeight = 613
     object OutputMemo: TMemo
-      Left = 1
-      Top = 315
-      Width = 861
-      Height = 314
+      Left = 401
+      Top = 1
+      Width = 461
+      Height = 628
       Align = alClient
       Color = clMoneyGreen
       Font.Charset = ANSI_CHARSET
@@ -200,13 +206,15 @@ object FormClassic: TFormClassic
       ScrollBars = ssVertical
       TabOrder = 0
       WordWrap = False
+      ExplicitWidth = 455
+      ExplicitHeight = 611
     end
     object InputMemo: TMemo
       Left = 1
       Top = 1
-      Width = 861
-      Height = 314
-      Align = alTop
+      Width = 400
+      Height = 628
+      Align = alLeft
       Color = clSkyBlue
       Font.Charset = ANSI_CHARSET
       Font.Color = clWindowText
@@ -220,6 +228,7 @@ object FormClassic: TFormClassic
       ScrollBars = ssVertical
       TabOrder = 1
       WordWrap = False
+      ExplicitHeight = 611
     end
   end
 end

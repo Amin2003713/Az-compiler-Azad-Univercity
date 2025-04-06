@@ -52,6 +52,8 @@ type
     procedure IrregularClicked(Sender: TObject);
     procedure DecisionClicked(Sender: TObject);
     procedure ParserClicked(Sender: TObject);
+    procedure DepthClicked(Sender: TObject);
+    procedure CodeClicked(Sender: TObject);
   private
     { Private declarations }
   public
@@ -161,6 +163,13 @@ begin
   OutputMemo.Lines.Text := Inp.SkipNumber.ToString;
 end;
 
+procedure TFormClassic.CodeClicked(Sender: TObject);
+begin
+            OutputMemo.Lines.Clear;
+  OutputMemo.Lines.Add('Codes =');
+  OutputMemo.Lines.AddStrings(Inp.SkipCodes.ToLines);
+end;
+
 procedure TFormClassic.DecisionClicked(Sender: TObject);
 var
   S: String;
@@ -209,6 +218,13 @@ begin
   end;
 
   OutputMemo.Lines.Text := S;
+end;
+
+procedure TFormClassic.DepthClicked(Sender: TObject);
+begin
+      // OutputMemo.Lines.Text := 'Depth = ' + Inp.SkipDepth.ToString;
+       OutputMemo.Lines.Text := 'Expression = ' + Inp.SkipExpVal.ToString;
+
 end;
 
 procedure TFormClassic.StrClicked(Sender: TObject);
@@ -267,7 +283,7 @@ end;
 procedure TFormClassic.ParserClicked(Sender: TObject);
 begin
   OutputMemo.Lines.Text := Inp.SkipSXY;
-//   OutputMemo.Lines.Text := Inp.SkipSPNV;
+  // OutputMemo.Lines.Text := Inp.SkipSPNV;
 end;
 
 end.

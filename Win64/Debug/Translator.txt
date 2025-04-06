@@ -1,0 +1,18 @@
+/* Depth
+//(a(a,(a)))            //-> Depth: 3 Syntax
+//(a,(a,(aa)))          //-> Depth: 3 Syntax
+a                       //-> Depth: 0
+(a)                     //-> Depth: 1
+(a,a)                   //-> Depth: 1
+(a,(a))                 //-> Depth: 2
+(a,(a,a))               //-> Depth: 2
+(a,(a,(a,(a))))         //-> Depth: 4
+(a,(a,a,(a,a)))         //-> Depth: 3
+(a,(a,(a),a,(a,(a))))   //-> Depth: 4
+
+*/ 
+1 + 2
+10 + 5 * 3 + - (2 * 5 / 4)
+10 * (-5 + 8) / ((4 + - 7) * - (10.2 - 2.2))
+
+
