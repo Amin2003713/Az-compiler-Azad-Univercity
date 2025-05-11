@@ -3,8 +3,8 @@ object FormClassic: TFormClassic
   Top = 0
   BorderStyle = bsSingle
   Caption = 'Classic Syntaxes'
-  ClientHeight = 681
-  ClientWidth = 1000
+  ClientHeight = 936
+  ClientWidth = 1392
   Color = clBtnFace
   Font.Charset = ANSI_CHARSET
   Font.Color = clWindowText
@@ -18,7 +18,7 @@ object FormClassic: TFormClassic
   object TopPanel: TPanel
     Left = 0
     Top = 0
-    Width = 1000
+    Width = 1392
     Height = 51
     Align = alTop
     TabOrder = 0
@@ -63,7 +63,7 @@ object FormClassic: TFormClassic
     Left = 0
     Top = 51
     Width = 137
-    Height = 630
+    Height = 885
     Align = alLeft
     TabOrder = 1
     ExplicitHeight = 613
@@ -181,17 +181,17 @@ object FormClassic: TFormClassic
   object ClientPanel: TPanel
     Left = 137
     Top = 51
-    Width = 863
-    Height = 630
+    Width = 1255
+    Height = 885
     Align = alClient
     TabOrder = 2
     ExplicitWidth = 857
     ExplicitHeight = 613
     object OutputMemo: TMemo
-      Left = 401
+      Left = 593
       Top = 1
-      Width = 461
-      Height = 628
+      Width = 661
+      Height = 883
       Align = alClient
       Color = clMoneyGreen
       Font.Charset = ANSI_CHARSET
@@ -206,14 +206,15 @@ object FormClassic: TFormClassic
       ScrollBars = ssVertical
       TabOrder = 0
       WordWrap = False
+      ExplicitLeft = 401
       ExplicitWidth = 455
       ExplicitHeight = 611
     end
     object InputMemo: TMemo
       Left = 1
       Top = 1
-      Width = 400
-      Height = 628
+      Width = 592
+      Height = 883
       Align = alLeft
       Color = clSkyBlue
       Font.Charset = ANSI_CHARSET
@@ -228,7 +229,6 @@ object FormClassic: TFormClassic
       ScrollBars = ssVertical
       TabOrder = 1
       WordWrap = False
-      ExplicitHeight = 611
     end
   end
 end

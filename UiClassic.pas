@@ -222,8 +222,8 @@ end;
 
 procedure TFormClassic.DepthClicked(Sender: TObject);
 begin
-      // OutputMemo.Lines.Text := 'Depth = ' + Inp.SkipDepth.ToString;
-       OutputMemo.Lines.Text := 'Expression = ' + Inp.SkipExpVal.ToString;
+       OutputMemo.Lines.Text := 'Depth = ' + Inp.SkipDepth.ToString;
+      // OutputMemo.Lines.Text := 'Expression = ' + Inp.SkipExpVal.ToString;
 
 end;
 

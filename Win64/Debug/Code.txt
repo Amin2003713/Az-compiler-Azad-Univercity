@@ -1,3 +1,0 @@
-for i := A + 1 to N - 1 do
-  for j := B + i to N - i do
-    S := S + 1;
